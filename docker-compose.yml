@@ -11,7 +11,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql/data
     networks:
         - my_network
 
@@ -20,7 +20,6 @@ services:
     container_name: my-haskell-container
     depends_on:
       - postgres
-    restart: always
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -30,8 +29,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - /Users/dhruv.sharma/lol/testing/stack_deps:/root/.stack
-      - /Users/dhruv.sharma/lol/testing/src:/usr/src/app/src
+      - ./stack_deps:/root/.stack
+      - ./src:/usr/src/app/src
     stdin_open: true
     tty: true
     networks:

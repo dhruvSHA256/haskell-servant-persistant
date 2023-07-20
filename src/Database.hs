@@ -2,9 +2,10 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -14,63 +15,47 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Database
-  ( migrateDB,
-  )
 where
 
+
+import Control.Monad.Reader (runReaderT)
+import Control.Monad.Trans
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Logger (LoggingT, runStdoutLoggingT)PersistT, runMigration, withPostgresqlConn)
-import Database.Persist.TH
-import Data.Text (Text)
-import Database.Persist
-import Database.Persist (Entity (..))
-import Database.Persist.Postgresql (ConnectionString, SqlPersistT, runMigration, withPostgresqlConn)
+import Control.Monad.Logger
 import Database.Persist.TH
 import qualified Database.Persist.TH as PTH
+import Data.Text (Text)
+import Data.Int (Int64)
+import Database.Persist
+import Database.Persist.Postgresql
+import Database.Persist.Sql (selectList)
 
-PTH.share
-  [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"]
-  [PTH.persistLowerCase|
-  [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"]
-  [PTH.persistLowerCase|
+PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persistLowerCase|
   User sql=users
     name Text
     email Text
     UniqueEmail email
     deriving Show Read
-  Movie sql=movies
-    name Text
-    rating Text
-    genre email
-    deriving Show Read
 |]
 
 connString :: ConnectionString
-runAction :: ConnectionString -> SqlPersistT (LoggingT IO) a -> IO aassword=postgres"
+connString = "host=postgres port=5432 user=postgres dbname=postgres password=postgres"
 
-runAction :: ConnectionString -> SqlPersistT (LoggingT IO) a -> IO a
+runAction :: ConnectionString -> SqlPersistT (LoggingT IO) a ->  IO a
 runAction connectionString action = runStdoutLoggingT $ withPostgresqlConn connectionString $ \backend ->
   runReaderT action backend
 
-  pool <- asks configPool
-  liftIO $ runSqlPool query pool
-  pool <- asks configPool
-  liftIO $ runSqlPool query pool
-
 migrateDB :: IO ()
+migrateDB = runAction connString (runMigration migrateAll)
 
-getUser :: (MonadIO m) => Int -> ReaderT SqlBackend m User
-getUser x = do
-  maybePerson <- get $ toSqlKey $ fromIntegral x
-    Nothing -> error "404 not found person with key " ++ show x
-    Just person -> pure person
+getUser :: Int64 -> IO (Maybe User)
+getUser uid = runAction connString (get (toSqlKey uid))
 
+createUser :: User -> IO Int64
+createUser user = fromSqlKey <$> runAction connString (insert user)
 
-allUsers :: MonadIO m => AppT m [Entity User]
-allUsers = do
-    runDb (selectList [] [])
-
-createUser :: MonadIO m => User -> AppT m Int64
-createUser p = do
-    newUser <- runDb (insert (User (userName p) (userEmail p)))
-    return $ fromSqlKey newUser
+deleteUser :: Int64 -> IO ()
+deleteUser uid = runAction connString (delete userKey)
+  where
+    userKey :: Key User
+    userKey = toSqlKey uid
