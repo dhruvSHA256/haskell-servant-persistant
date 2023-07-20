@@ -11,8 +11,6 @@ user = User {
 }
 
 main :: IO ()
--- main = startApp
--- main = migrateDB
 main = do
   let user = (getUser 1)
   user' <- user
