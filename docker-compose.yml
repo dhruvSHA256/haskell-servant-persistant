@@ -1,23 +1,25 @@
 version: '3'
 services:
-  # postgres:
-  #   image: postgres:latest
-  #   container_name: my-postgres-container
-  #   restart: always
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: postgres
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
+  postgres:
+    image: postgres:latest
+    container_name: my-postgres-container
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+        - my_network
 
   haskell:
     build: .
     container_name: my-haskell-container
-    # depends_on:
-    #   - postgres
+    depends_on:
+      - postgres
     restart: always
     environment:
       DB_HOST: postgres
@@ -27,6 +29,18 @@ services:
       DB_PASSWORD: postgres
     ports:
       - "8080:8080"
+    volumes:
+      - /Users/dhruv.sharma/lol/testing/stack_deps:/root/.stack
+      - /Users/dhruv.sharma/lol/testing/src:/usr/src/app/src
+    stdin_open: true
+    tty: true
+    networks:
+        - my_network
 
 volumes:
   postgres_data:
+  src:
+  stack_deps:
+
+networks:
+  my_network:

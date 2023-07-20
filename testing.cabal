@@ -25,7 +25,7 @@ source-repository head
 
 library
   exposed-modules:
-      Db
+      Database
       Lib
   other-modules:
       Paths_testing
@@ -39,8 +39,8 @@ library
     , containers
     , cookie
     , directory
-    , mlt
     , monad-logger
+    , mtl >=2.2.2 && <2.3
     , persistent
     , persistent-postgresql
     , persistent-template
@@ -67,8 +67,8 @@ executable testing-exe
     , containers
     , cookie
     , directory
-    , mlt
     , monad-logger
+    , mtl >=2.2.2 && <2.3
     , persistent
     , persistent-postgresql
     , persistent-template
@@ -100,8 +100,8 @@ test-suite testing-test
     , hspec
     , hspec-wai
     , hspec-wai-json
-    , mlt
     , monad-logger
+    , mtl >=2.2.2 && <2.3
     , persistent
     , persistent-postgresql
     , persistent-template

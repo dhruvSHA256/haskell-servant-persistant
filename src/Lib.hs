@@ -10,7 +10,7 @@
 {-# LANGUAGE UndecidableInstances  #-}
 
 module Lib
-  ( startApp,
+  ( startApp
   )
 where
 
@@ -52,7 +52,7 @@ hIO user fileName = do
 
 authUser :: ByteString -> ByteString -> Maybe User
 authUser username password = 
-  if username == "servant" && password == "server1" 
+  if username == "servant" && password == "server" 
     then Just (User "servant")
     else Nothing
 
