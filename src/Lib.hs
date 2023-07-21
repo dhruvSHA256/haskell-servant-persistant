@@ -24,36 +24,29 @@ import Servant.Server.Experimental.Auth()
 import Codec.Binary.UTF8.Generic (fromString)
 import Servant.Server.Internal.BasicAuth
 import Data.ByteString (ByteString)
+import Database (createMovie, readMovie, updateMovie, deleteMovie, getAllMovie)
+import Data.Text (Text)
+import Data.Int (Int64)
+import Database
 
-data FileContent = FileContent
-  { content :: String
-  }
-  deriving (Eq, Show, Generic)
-instance ToJSON FileContent
 
-newtype User = User {userName :: String}
-  deriving (Eq, Show, Generic)
-instance ToJSON User
+type API = "movie" :> BasicAuth "admin" User :> ReqBody '[JSON] Movie :> Post '[JSON] Movie
 
-type API = "content" :> BasicAuth "admin" User :> Capture "fileName" FilePath :> Get '[JSON] FileContent
-
-hIO :: User -> FilePath -> Handler FileContent
-hIO user fileName = do
-  -- liftIO $ print user
-  exist <- liftIO (doesFileExist fileName)
-  liftIO $ putStrLn fileName
-  if exist
-    then do
-      liftIO (readFile fileName) >>= return . FileContent
-    else throwError customError
-  where
-    customError = err404 {errBody = fromString (fileName ++ " doesnt exist")}
+hMovie :: User -> Movie -> Handler Movie
+hMovie user movie = do
+  liftIO $ print "hello"
+  liftIO $ print movie
+  liftIO $ print "adding movie into db"
+  movieKey <- liftIO $ createMovie movie
+  liftIO $ print "Successfully added movie"
+  liftIO $ print movie
+  return movie
 
 
 authUser :: ByteString -> ByteString -> Maybe User
 authUser username password = 
   if username == "servant" && password == "server" 
-    then Just (User "servant")
+    then Just (User "servant" "servant@gmail.com")
     else Nothing
 
 basicAuthServerContext :: Context '[BasicAuthCheck User]
@@ -61,8 +54,6 @@ basicAuthServerContext = BasicAuthCheck check :. EmptyContext
   where 
   check :: BasicAuthData -> IO (BasicAuthResult User)
   check (BasicAuthData username password) = do
-    -- print username
-    -- print password
     case authUser username password of
       Just user -> return (Authorized user)
       Nothing -> return Unauthorized
@@ -71,7 +62,7 @@ api :: Proxy API
 api = Proxy
 
 server :: Server API
-server = hIO
+server = hMovie
 
 startApp :: IO ()
 startApp =
