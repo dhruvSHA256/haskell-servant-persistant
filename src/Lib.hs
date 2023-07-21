@@ -28,19 +28,45 @@ import Database (createMovie, readMovie, updateMovie, deleteMovie, getAllMovie)
 import Data.Text (Text)
 import Data.Int (Int64)
 import Database
+import Database.Persist
+import Database.Persist.Postgresql
+import Database.Persist.Sql
 
 
 type API = "movie" :> BasicAuth "admin" User :> ReqBody '[JSON] Movie :> Post '[JSON] Movie
+       :<|> "movie" :> BasicAuth "admin" User :> Capture "id" Int64 :> DeleteNoContent 
+       :<|> "movie" :> BasicAuth "admin" User :> Capture "id" Int64 :> Get '[JSON] Movie
+       :<|> "movie" :> BasicAuth "admin" User :> Capture "id" Int64 :> ReqBody '[JSON] Movie :> Put '[JSON] NoContent
+       :<|> "movies" :> Get '[JSON] [Movie]
 
-hMovie :: User -> Movie -> Handler Movie
-hMovie user movie = do
-  liftIO $ print "hello"
-  liftIO $ print movie
+hPostMovie :: User -> Movie -> Handler Movie
+hPostMovie user movie = do
   liftIO $ print "adding movie into db"
   movieKey <- liftIO $ createMovie movie
   liftIO $ print "Successfully added movie"
-  liftIO $ print movie
   return movie
+
+hDeleteMovie :: User -> Int64 -> Handler NoContent
+hDeleteMovie user mid = do
+  liftIO $ deleteMovie mid
+  return NoContent
+
+hGetMovie :: User -> Int64 -> Handler Movie
+hGetMovie user mid = do
+  movie <- liftIO $ readMovie mid
+  case movie of 
+    Just m -> return m
+    Nothing -> throwError (err404 {errBody = fromString (" doesnt exist")})
+
+hUpdateMovie :: User -> Int64 -> Movie -> Handler NoContent
+hUpdateMovie user mid movie = do
+  liftIO $ updateMovie mid movie
+  return NoContent
+  
+hGetMovies :: Handler [Movie]
+hGetMovies = do
+  movies <- liftIO $ getAllMovie
+  return $ map entityVal movies
 
 
 authUser :: ByteString -> ByteString -> Maybe User
@@ -62,7 +88,11 @@ api :: Proxy API
 api = Proxy
 
 server :: Server API
-server = hMovie
+server = hPostMovie
+    :<|> hDeleteMovie
+    :<|> hGetMovie
+    :<|> hUpdateMovie
+    :<|> hGetMovies
 
 startApp :: IO ()
 startApp =
