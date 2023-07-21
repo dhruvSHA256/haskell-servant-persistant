@@ -1,2 +1,3 @@
 stack_deps
 postgres_data
+.stack_work

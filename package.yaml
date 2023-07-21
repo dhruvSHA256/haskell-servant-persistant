@@ -25,11 +25,16 @@ dependencies:
 - aeson
 - servant
 - servant-server
+- servant-client
+- servant-auth
+- servant-auth-server >= 0.4.8.0
 - wai
 - warp
 - directory
 - utf8-string
 - bytestring
+- http-types
+- http-client
 - persistent
 - persistent-template
 - persistent-postgresql
@@ -38,6 +43,7 @@ dependencies:
 - containers
 - monad-logger
 - resourcet
+ 
 
 ghc-options:
 - -Wall

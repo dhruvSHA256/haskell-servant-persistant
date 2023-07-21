@@ -42,9 +42,12 @@ type API = "movie" :> BasicAuth "admin" User :> ReqBody '[JSON] Movie :> Post '[
 hPostMovie :: User -> Movie -> Handler Movie
 hPostMovie user movie = do
   liftIO $ print "adding movie into db"
-  movieKey <- liftIO $ createMovie movie
+  key <- liftIO $ createMovie movie
   liftIO $ print "Successfully added movie"
-  return movie
+  movie' <- liftIO $ readMovie key
+  case movie' of 
+    Just m -> return m
+    Nothing -> throwError (err404 {errBody = fromString ("Error adding movie")})
 
 hDeleteMovie :: User -> Int64 -> Handler NoContent
 hDeleteMovie user mid = do

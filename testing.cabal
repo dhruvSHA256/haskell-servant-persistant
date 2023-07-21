@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Auth
       Database
       Lib
   other-modules:
@@ -39,6 +40,8 @@ library
     , containers
     , cookie
     , directory
+    , http-client
+    , http-types
     , monad-logger
     , mtl >=2.2.2 && <2.3
     , persistent
@@ -46,6 +49,9 @@ library
     , persistent-template
     , resourcet
     , servant
+    , servant-auth
+    , servant-auth-server >=0.4.8.0
+    , servant-client
     , servant-server
     , text
     , utf8-string
@@ -67,6 +73,8 @@ executable testing-exe
     , containers
     , cookie
     , directory
+    , http-client
+    , http-types
     , monad-logger
     , mtl >=2.2.2 && <2.3
     , persistent
@@ -74,6 +82,9 @@ executable testing-exe
     , persistent-template
     , resourcet
     , servant
+    , servant-auth
+    , servant-auth-server >=0.4.8.0
+    , servant-client
     , servant-server
     , testing
     , text
@@ -100,6 +111,8 @@ test-suite testing-test
     , hspec
     , hspec-wai
     , hspec-wai-json
+    , http-client
+    , http-types
     , monad-logger
     , mtl >=2.2.2 && <2.3
     , persistent
@@ -107,6 +120,9 @@ test-suite testing-test
     , persistent-template
     , resourcet
     , servant
+    , servant-auth
+    , servant-auth-server >=0.4.8.0
+    , servant-client
     , servant-server
     , testing
     , text
