@@ -11,82 +11,62 @@ import Data.Aeson
 import GHC.Generics
 import Data.Proxy
 import System.IO
-import Network.HTTP.Client (newManager, defaultManagerSettings)
 import Network.Wai.Handler.Warp
 import Servant as S
-import Servant.Client
 import Servant.Auth as SA
 import Servant.Auth.Server as SAS
 import Control.Monad.IO.Class (liftIO)
 import Data.Map as M
 import Data.ByteString (ByteString)
+import Config
+import Data.ByteString.Char8 (unpack)
+import Database
 
-port :: Int
-port = 8080
-data AuthenticatedUser = AUser { auID :: Int
-                               , auOrgID :: Int
-                               } deriving (Show, Generic)
-instance ToJSON AuthenticatedUser
-instance FromJSON AuthenticatedUser
-instance ToJWT AuthenticatedUser
-instance FromJWT AuthenticatedUser
 
-type Login      = ByteString
-type Password   = ByteString
-type DB         = Map (Login, Password) AuthenticatedUser
-type Connection = DB
-type Pool a     = a
+instance ToJSON User
+instance FromJSON User
+instance ToJWT User
+instance FromJWT User
 
-initConnPool :: IO (Pool Connection)
-initConnPool = pure $ fromList [ (("user", "pass"), AUser 1 1)
-                               , (("user2", "pass2"), AUser 2 1) ]
+authCheck :: BasicAuthData
+          -> IO (AuthResult User)
+authCheck (BasicAuthData login password) = do
+  user' <- checkUserPass (unpack login) (unpack password)
+  case user' of
+    Nothing -> return SAS.Indefinite
+    Just user -> return (Authenticated user)
 
-authCheck :: Pool Connection
-          -> BasicAuthData
-          -> IO (AuthResult AuthenticatedUser)
-authCheck connPool (BasicAuthData login password) = pure $
-  maybe SAS.Indefinite Authenticated $ M.lookup (login, password) connPool
+type instance BasicAuthCfg = BasicAuthData -> IO (AuthResult User)
 
-type instance BasicAuthCfg = BasicAuthData -> IO (AuthResult AuthenticatedUser)
-
-instance FromBasicAuthData AuthenticatedUser where
+instance FromBasicAuthData User where
   fromBasicAuthData authData authCheckFunction = authCheckFunction authData
 
-type API = "foo" :> Capture "i" Int :> Get '[JSON] ()
-               :<|> "bar" :> Get '[JSON] ()
+type API = "auth" :> Get '[JSON] ()
+      :<|> "bar" :> Get '[JSON] ()
 
-type APIClient = S.BasicAuth "test" AuthenticatedUser :> API
+type OpenAPI = "hello" :> Get '[JSON] ()
 
 type APIServer =
-  Auth '[SA.JWT, SA.BasicAuth] AuthenticatedUser :> API
+  Auth '[SA.JWT, SA.BasicAuth] User :> API
 
-testClient :: IO ()
-testClient = do
-  mgr <- newManager defaultManagerSettings
-  let (foo :<|> _) = client (Proxy :: Proxy APIClient)
-                     (BasicAuthData "name" "pass")
-  res <- runClientM (foo 42)
-    (mkClientEnv mgr (BaseUrl Http "localhost" port ""))
-  hPutStrLn stderr $ case res of
-    Left err -> "Error: " ++ show err
-    Right r -> "Success: " ++ show r
+handleAuth :: Handler ()
+handleAuth = liftIO $ hPutStrLn stderr $ "auth"
+
+handleBar :: Handler ()
+handleBar = liftIO $ putStrLn "Handling bar request"
+
+handleOpen :: Handler()
+handleOpen = liftIO $ putStrLn "Handling open api request"
 
 server :: Server APIServer
-server (Authenticated user) = handleFoo :<|> handleBar
-  where
-    handleFoo :: Int -> Handler ()
-    handleFoo n = liftIO $ hPutStrLn stderr $
-      concat ["foo: ", show user, " / ", show n]
-    handleBar :: Handler ()
-    handleBar = liftIO testClient
-
+server (Authenticated user)= handleAuth :<|> handleBar
 server _ = throwAll err401
-mkApp :: Pool Connection -> IO Application
-mkApp connPool = do
+
+app :: IO Application
+app = do
   myKey <- generateKey
-  let jwtCfg = defaultJWTSettings myKey
-      authCfg = authCheck connPool
+  let authCfg = authCheck
+      jwtCfg = defaultJWTSettings myKey
       cfg = jwtCfg :. defaultCookieSettings :. authCfg :. EmptyContext
       api = Proxy :: Proxy APIServer
   pure $ serveWithContext api cfg server
-

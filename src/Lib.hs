@@ -31,7 +31,7 @@ import Database
 import Database.Persist
 import Database.Persist.Postgresql
 import Database.Persist.Sql
-
+import Config
 
 type API = "movie" :> BasicAuth "admin" User :> ReqBody '[JSON] Movie :> Post '[JSON] Movie
        :<|> "movie" :> BasicAuth "admin" User :> Capture "id" Int64 :> DeleteNoContent 
@@ -75,7 +75,7 @@ hGetMovies = do
 authUser :: ByteString -> ByteString -> Maybe User
 authUser username password = 
   if username == "servant" && password == "server" 
-    then Just (User "servant" "servant@gmail.com")
+    then Just (User "servant" "servant@gmail.com" "pass" Nothing)
     else Nothing
 
 basicAuthServerContext :: Context '[BasicAuthCheck User]
@@ -100,7 +100,7 @@ server = hPostMovie
 startApp :: IO ()
 startApp =
   Network.Wai.Handler.Warp.run
-    8080
+    port
     ( serveWithContext
         api
         basicAuthServerContext

@@ -33,20 +33,24 @@ import Database.Persist.Postgresql
 import Database.Persist.Sql
 import GHC.Generics (Generic)
 import Data.Aeson (FromJSON, ToJSON, parseJSON, (.:), withObject)
+import Config
 
 PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persistLowerCase|
   User sql=users
-    name Text
-    email Text
+    name String
+    email String
+    password String
+    token String Maybe
     UniqueEmail email
     deriving Show Read Generic
   Movie sql=movies
-    name Text
+    name String
     rating Double Maybe
-    genre Text Maybe
+    genre String Maybe
     user UserId Maybe
     deriving Show Read Generic
 |]
+
 
 instance FromJSON Movie where
   parseJSON = withObject "Movie" $ \obj ->
@@ -57,9 +61,6 @@ instance FromJSON Movie where
       <*> obj .: "user"
 
 instance ToJSON Movie
-
-connString :: ConnectionString
-connString = "host=postgres port=5432 user=postgres dbname=postgres password=postgres"
 
 runAction :: ConnectionString -> SqlPersistT (LoggingT IO) a ->  IO a
 runAction connectionString action = runStdoutLoggingT $ withPostgresqlConn connectionString $ \backend ->
@@ -96,6 +97,16 @@ deleteUser uid = runAction connString (delete userKey)
     userKey :: Key User
     userKey = toSqlKey uid
 
+checkUserPass :: String -> String -> IO (Maybe User)
+checkUserPass email password = do
+  user' <- liftIO $ (runAction connString (getBy $ UniqueEmail email))
+  case user' of
+    Just (Entity _ user) -> 
+      if userPassword user == password 
+      then return (Just user)
+      else return Nothing
+    Nothing -> return Nothing
+
 
 createMovie :: Movie -> IO Int64
 createMovie movie = fromSqlKey <$> runAction connString (insert movie)
@@ -124,10 +135,3 @@ deleteMovie mid = runAction connString (delete movieKey)
   where
     movieKey :: Key Movie
     movieKey = toSqlKey mid
-
-
--- personId <- insert $ Person "Michael" "Snoyman" 26
--- maybePerson <- getBy $ PersonName "Michael" "Snoyman"
--- case maybePerson of
---     Nothing -> liftIO $ putStrLn "Just kidding, not really there"
---     Just (Entity personId person) -> liftIO $ print person
