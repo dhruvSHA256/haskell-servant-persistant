@@ -84,7 +84,7 @@ hPostMovie user movie' = do
     Nothing -> throwError (err404 {errBody = fromString ("Error adding movie")})
 
 
-hGetMovie :: User -> Int64 -> Handler Movie
+hGetMovie :: Int64 -> Handler Movie
 hGetMovie _ mid = do
   movie <- liftIO $ readMovie mid
   case movie of 
@@ -102,7 +102,6 @@ hPutMovie user mid movie = do
       else throwError (err403 {errBody = fromString ("Forbidden")})
     Nothing -> throwError (err404 {errBody = fromString ("Movie not found")})
   return NoContent
-
 
 
 hDeleteMovie :: User -> Int64 -> Handler NoContent
