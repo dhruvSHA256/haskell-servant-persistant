@@ -1,4 +1,4 @@
-module Config
+module Config (port, connString)
 where
 
 import Database.Persist.Postgresql (ConnectionString)

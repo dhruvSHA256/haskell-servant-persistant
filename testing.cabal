@@ -25,10 +25,13 @@ source-repository head
 
 library
   exposed-modules:
+      Api
+      App
       Auth
       Config
       Database
-      Lib
+      Handler
+      Models
   other-modules:
       Paths_testing
   hs-source-dirs:
